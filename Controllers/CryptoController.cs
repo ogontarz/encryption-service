@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using NSec.Cryptography;
+
 
 namespace EncryptionService.Controllers
 {
@@ -44,7 +44,6 @@ namespace EncryptionService.Controllers
             byte[] seconds = BitConverter.GetBytes(sec);
             Console.WriteLine("Seconds size: " + seconds.Length);
 
-
             SharedSecret secret = SharedSecret.Import(motherKey);
 
             Key keyCipher = KeyDerivationAlgorithm.HkdfSha256.DeriveKey(secret, seconds, null, ChaCha20Poly1305.ChaCha20Poly1305);
@@ -55,11 +54,9 @@ namespace EncryptionService.Controllers
             Nonce IV = new Nonce(fixedField: ivbytes, counterFieldSize: 0);
             Console.WriteLine("IV size: " + IV.Size);
 
-
             byte[] ciphertext = ChaCha20Poly1305.ChaCha20Poly1305.Encrypt(keyCipher, IV, null, plaintext);
             Console.WriteLine("Cyphertext: " + BitConverter.ToString(ciphertext));
             Console.WriteLine("Cyphertext length: " + ciphertext.Length);
-
 
             byte[] result = new byte[seconds.Length + ivbytes.Length + ciphertext.Length];
             Array.Copy(seconds, 0, result, 0, seconds.Length);
@@ -165,6 +162,7 @@ namespace EncryptionService.Controllers
                 }
             }
         }
+
 
         // POST api/decryptString
         [HttpPost]
