@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,7 +12,18 @@ namespace EncryptionService.Controllers
     [ApiController]
     public class EncryptionController : ControllerBase
     {
-        readonly byte[] motherKey = new byte[32] { 0x04, 0x21, 0x60, 0x1F, 0xA1, 0x33, 0x00, 0x21, 0x60, 0x1F, 0xC1, 0x23, 0x04, 0x21, 0x60, 0x4F, 0xA3, 0x33, 0x00, 0x24, 0x62, 0x1F, 0xB1, 0x32, 0x33, 0x34, 0x21, 0xB1, 0x32, 0x33, 0x34, 0x21 };
+        readonly byte[] motherKey;
+
+
+        public EncryptionController()
+        {
+            String[] arguments = Environment.GetCommandLineArgs();
+            Console.WriteLine("Reading mother key from: " + arguments[1]);
+            string key = System.IO.File.ReadAllText(arguments[1]);
+            Console.WriteLine("Mother key: " + key);
+            motherKey = Encoding.ASCII.GetBytes(key);
+            Console.WriteLine("Key bytes: " + BitConverter.ToString(motherKey));
+        }
 
 
         // GET api/
@@ -24,12 +36,14 @@ namespace EncryptionService.Controllers
 
         public byte[] encrypt(byte[] plaintext)
         {
-            Console.WriteLine(BitConverter.ToString(plaintext));
+            Console.WriteLine("Plaintext: " + BitConverter.ToString(plaintext));
             Console.WriteLine("Plaintext size: " + plaintext.Length);
 
             int sec = GetSeconds();
-            byte[] seconds = BitConverter.GetBytes(sec);
             Console.WriteLine("Seconds: " + sec);
+            byte[] seconds = BitConverter.GetBytes(sec);
+            Console.WriteLine("Seconds size: " + seconds.Length);
+
 
             SharedSecret secret = SharedSecret.Import(motherKey);
 
@@ -61,18 +75,14 @@ namespace EncryptionService.Controllers
         [Route("encryptFile")]
         public async Task<ActionResult> EncryptFile()
         {
-            string path = Environment.GetEnvironmentVariable("PATH");
-            string binDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Bin");
-            Environment.SetEnvironmentVariable("PATH", path + ";" + binDir);
-
             using (var stream = new MemoryStream())
             {
                 await Request.Body.CopyToAsync(stream);
                 byte[] plaintext = stream.ToArray();
 
                 byte[] result = encrypt(plaintext);
+                Console.WriteLine("Result: " + BitConverter.ToString(result));
 
-                Console.WriteLine("result: " + BitConverter.ToString(result));
                 return File(result, "application/octet-stream");
             }
         }
@@ -83,10 +93,6 @@ namespace EncryptionService.Controllers
         [Route("encryptString")]
         public async Task<String> EncryptString()
         {
-            string path = Environment.GetEnvironmentVariable("PATH");
-            string binDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Bin");
-            Environment.SetEnvironmentVariable("PATH", path + ";" + binDir);
-
             using (var stream = new MemoryStream())
             {
                 await Request.Body.CopyToAsync(stream);
@@ -94,8 +100,8 @@ namespace EncryptionService.Controllers
 
                 byte[] result = encrypt(plaintext);
 
-                Console.WriteLine("result: " + BitConverter.ToString(result));
-                Console.WriteLine(Convert.ToBase64String(result));
+                Console.WriteLine("Result: " + BitConverter.ToString(result));
+                Console.WriteLine("Result in base64: " + Convert.ToBase64String(result));
                 return Convert.ToBase64String(result);
             }
         }
@@ -103,7 +109,6 @@ namespace EncryptionService.Controllers
 
         public byte[] decrypt(byte[] data)
         {
-            Console.WriteLine("Mother key: " + BitConverter.ToString(motherKey));
             SharedSecret secret = SharedSecret.Import(motherKey);
 
             byte[] seconds = new byte[4];
@@ -144,10 +149,6 @@ namespace EncryptionService.Controllers
         [Route("decryptFile")]
         public async Task<ActionResult> DecryptFile()
         {
-            string path = Environment.GetEnvironmentVariable("PATH");
-            string binDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Bin");
-            Environment.SetEnvironmentVariable("PATH", path + ";" + binDir);
-
             using (var stream = new MemoryStream())
             {
                 await Request.Body.CopyToAsync(stream);
@@ -170,21 +171,17 @@ namespace EncryptionService.Controllers
         [Route("decryptString")]
         public async Task<ActionResult> DecryptString()
         {
-            string path = Environment.GetEnvironmentVariable("PATH");
-            string binDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Bin");
-            Environment.SetEnvironmentVariable("PATH", path + ";" + binDir);
-
             using (var stream = new StreamReader(Request.Body))
             {
                 string content = await stream.ReadToEndAsync();
-                Console.WriteLine("Content " + content);
+                Console.WriteLine("Content in base64: " + content);
                 byte[] data = Convert.FromBase64String(content);
-                Console.WriteLine("Data " + BitConverter.ToString(data));
+                Console.WriteLine("Content: " + BitConverter.ToString(data));
 
                 byte[] plaintext = decrypt(data);
                 if (plaintext != null)
                 {
-                    Console.WriteLine(Encoding.UTF8.GetString(plaintext));
+                    Console.WriteLine("Plaintext: " + Encoding.UTF8.GetString(plaintext));
                     return Content(Encoding.UTF8.GetString(plaintext));
                 }
                 else
