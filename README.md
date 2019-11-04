@@ -15,3 +15,6 @@ Serwis umożliwia enkrypcję/dekrypcję zarówno stringów, jak i plików binarn
 Komenda: ```dotnet EncryptionSerice.dll "nazwa_pliku.txt"```, gdzie nazwa_pliku.txt to ścieżka do pliku tekstowego zawierającego wartość klucza używanego do szyfrowania.
 
 Serwis domyślnie uruchamia się na localhost:5001. Poprawnie uruchomiany pod adresem /api odpowiada komunikatem "It's working".
+
+
+Usługa udostępniona jest tylko przez HTTP i wymaga postawienia dodatkowego proxy IIS z certyfikatem dla zapewnienia ruchu po HTTPS.
